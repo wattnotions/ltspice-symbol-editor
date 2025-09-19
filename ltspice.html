@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LTspice .asy Viewer</title>
+  <style>
+    html,body{height:100%;margin:0;font:14px/1.3 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{background:#0f1317;color:#e9eef3;display:grid;grid-template-rows:auto 1fr}
+    header{padding:10px 12px;background:#141a20;border-bottom:1px solid #273341}
+    main{display:grid;grid-template-columns:280px 1fr;gap:12px;padding:12px}
+    @media (max-width:900px){main{grid-template-columns:1fr}}
+    .panel{background:#141a20;border:1px solid #273341;border-radius:12px}
+    .controls{padding:12px}
+    input[type=file]{display:none}
+    label#pick{cursor:pointer;padding:8px 12px;border-radius:10px;border:1px solid #334456;background:#19222c}
+    #stage{display:grid;place-items:center;padding:12px}
+    #svg{width:100%;height:100%;min-height:420px;background:#c7c7c7;border-radius:10px}
+    .status{padding:10px 12px;border-top:1px solid #273341;color:#9fb0c0}
+  </style>
+</head>
+<body>
+  <header><strong>LTspice .asy Viewer</strong></header>
+  <main>
+    <section class="panel controls">
+      <label id="pick" for="file">Select .asy file</label>
+      <input id="file" type="file" accept=".asy,text/plain" />
+      <p style="color:#9fb0c0;margin:10px 0 0">Scroll to zoom. (Supports LINE / RECTANGLE / CIRCLE / PIN)</p>
+    </section>
+
+    <section class="panel">
+      <div id="stage">
+        <svg id="svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"></svg>
+      </div>
+      <div class="status" id="status">Load a file to view.</div>
+    </section>
+  </main>
+
+  <script>
+    const svg = document.getElementById('svg');
+    const fileInput = document.getElementById('file');
+    const statusEl = document.getElementById('status');
+
+    const setStatus = t => statusEl.textContent = t;
+    const nums = s => (s.match(/-?\d+/g) || []).map(Number);
+    const clear = () => { while (svg.firstChild) svg.removeChild(svg.firstChild); };
+
+    function parseASY(text){
+      const shapes = [];
+      for (const raw of text.split(/\r?\n/)) {
+        const line = raw.trim();
+        if (!line || line.startsWith(';')) continue;
+        const head = line.split(/\s+/)[0].toUpperCase();
+        const n = nums(line);
+        if (head === 'LINE' && n.length >= 4) {
+          const [x1,y1,x2,y2] = n.slice(-4);
+          shapes.push({t:'l',x1,y1,x2,y2});
+        } else if (head === 'RECTANGLE' && n.length >= 4) {
+          let [x1,y1,x2,y2] = n.slice(-4);
+          if (x2<x1) [x1,x2] = [x2,x1];
+          if (y2<y1) [y1,y2] = [y2,y1];
+          shapes.push({t:'r',x:x1,y:y1,w:x2-x1,h:y2-y1});
+        } else if (head === 'CIRCLE' && n.length >= 4) {
+          let [x1,y1,x2,y2] = n.slice(-4);
+          if (x2<x1) [x1,x2] = [x2,x1];
+          if (y2<y1) [y1,y2] = [y2,y1];
+          const rx = (x2-x1)/2, ry = (y2-y1)/2;
+          shapes.push({t:'e',cx:x1+rx,cy:y1+ry,rx,ry});
+        } else if (head === 'PIN' && n.length >= 2) {
+          const [x,y] = n;
+          const s = 8; // pin square size
+          shapes.push({t:'r',x:x-s/2,y:y-s/2,w:s,h:s,pin:1});
+        }
+      }
+      return shapes;
+    }
+
+    function bounds(sh){
+      let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+      const add = (x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
+      sh.forEach(s=>{
+        if(s.t==='l'){ add(s.x1,s.y1); add(s.x2,s.y2); }
+        if(s.t==='r'){ add(s.x,s.y); add(s.x+s.w,s.y+s.h); }
+        if(s.t==='e'){ add(s.cx-s.rx,s.cy-s.ry); add(s.cx+s.rx,s.cy+s.ry); }
+      });
+      if(!isFinite(minX)){ minX=0;minY=0;maxX=100;maxY=100; }
+      const pad = 16;
+      return {x:minX-pad, y:minY-pad, w:maxX-minX+pad*2, h:maxY-minY+pad*2};
+    }
+
+    function render(text){
+      const sh = parseASY(text);
+      clear();
+      const b = bounds(sh);
+      svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.w} ${b.h}`);
+      const g = document.createElementNS(svg.namespaceURI,'g');
+      g.setAttribute('stroke','#0b3fa8');
+      g.setAttribute('fill','none');
+      g.setAttribute('stroke-width','2');
+      for(const s of sh){
+        if(s.t==='l'){
+          const el = document.createElementNS(svg.namespaceURI,'line');
+          el.setAttribute('x1',s.x1); el.setAttribute('y1',s.y1);
+          el.setAttribute('x2',s.x2); el.setAttribute('y2',s.y2);
+          g.appendChild(el);
+        } else if(s.t==='r'){
+          const el = document.createElementNS(svg.namespaceURI,'rect');
+          el.setAttribute('x',s.x); el.setAttribute('y',s.y);
+          el.setAttribute('width',s.w); el.setAttribute('height',s.h);
+          if(s.pin) el.setAttribute('fill','#0b3fa8');
+          g.appendChild(el);
+        } else if(s.t==='e'){
+          const el = document.createElementNS(svg.namespaceURI,'ellipse');
+          el.setAttribute('cx',s.cx); el.setAttribute('cy',s.cy);
+          el.setAttribute('rx',s.rx); el.setAttribute('ry',s.ry);
+          g.appendChild(el);
+        }
+      }
+      svg.appendChild(g);
+      setStatus(`Parsed ${sh.length} shape(s).`);
+    }
+
+    // Select file -> render
+    fileInput.addEventListener('change', async e => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      const text = await f.text();
+      render(text);
+    });
+
+    // Scroll-wheel zoom (cursor anchored)
+    svg.addEventListener('wheel', e => {
+      e.preventDefault();
+      const vb = svg.viewBox.baseVal;
+      const rect = svg.getBoundingClientRect();
+      const mx = vb.x + (e.clientX - rect.left) / rect.width * vb.width;
+      const my = vb.y + (e.clientY - rect.top)  / rect.height * vb.height;
+      const z  = Math.pow(1.1, e.deltaY > 0 ? 1 : -1);
+      const newW = vb.width * z, newH = vb.height * z;
+      const u = (mx - vb.x) / vb.width, v = (my - vb.y) / vb.height;
+      vb.x = mx - u * newW; vb.y = my - v * newH;
+      vb.width = newW; vb.height = newH;
+    }, { passive:false });
+  </script>
+</body>
+</html>
