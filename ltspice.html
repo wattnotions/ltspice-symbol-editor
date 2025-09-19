@@ -25,140 +25,56 @@
     <section class="panel controls">
       <label id="pick" for="file">Select .asy file</label>
       <input id="file" type="file" accept=".asy,text/plain" />
-      <p style="color:#9fb0c0;margin:10px 0 0">Scroll to zoom. (Supports LINE / RECTANGLE / CIRCLE / PIN, grid always on)</p>
+      <p style="color:#9fb0c0;margin:10px 0 0">Scroll to zoom. (Grid always on, lines snap to grid)</p>
     </section>
 
     <section class="panel">
       <div id="stage">
         <svg id="svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"></svg>
       </div>
-      <div class="status" id="status">Load a file to view.</div>
+      <div class="status" id="status">Load a file or draw.</div>
     </section>
   </main>
 
   <script>
-    const svg = document.getElementById('svg');
-    const fileInput = document.getElementById('file');
-    const statusEl = document.getElementById('status');
+    const svg=document.getElementById('svg'),fileInput=document.getElementById('file'),statusEl=document.getElementById('status');
+    const setStatus=t=>statusEl.textContent=t,nums=s=>(s.match(/-?\d+/g)||[]).map(Number),clear=()=>{while(svg.firstChild)svg.removeChild(svg.firstChild)};
 
-    const setStatus = t => statusEl.textContent = t;
-    const nums = s => (s.match(/-?\d+/g) || []).map(Number);
-    const clear = () => { while (svg.firstChild) svg.removeChild(svg.firstChild); };
+    function parseASY(text){const sh=[];for(const raw of text.split(/\r?\n/)){const line=raw.trim();if(!line||line[0]===';')continue;const head=line.split(/\s+/)[0].toUpperCase(),n=nums(line);if(head==='LINE'&&n.length>=4){const[x1,y1,x2,y2]=n.slice(-4);sh.push({t:'l',x1,y1,x2,y2});}}return sh;}
+    function bounds(sh){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;const add=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y)};sh.forEach(s=>{add(s.x1,s.y1);add(s.x2,s.y2)});if(!isFinite(minX)){minX=0;minY=0;maxX=100;maxY=100;}const pad=16;return{x:minX-pad,y:minY-pad,w:maxX-minX+pad*2,h:maxY-minY+pad*2};}
+    function drawGrid(b,step=16){const g=document.createElementNS(svg.namespaceURI,'g');g.setAttribute('stroke','#5f6d7a');g.setAttribute('stroke-width','0.6');g.setAttribute('opacity','0.25');for(let X=Math.ceil(b.x/step)*step;X<=b.x+b.w;X+=step){const l=document.createElementNS(svg.namespaceURI,'line');l.setAttribute('x1',X);l.setAttribute('y1',b.y);l.setAttribute('x2',X);l.setAttribute('y2',b.y+b.h);g.appendChild(l);}for(let Y=Math.ceil(b.y/step)*step;Y<=b.y+b.h;Y+=step){const l=document.createElementNS(svg.namespaceURI,'line');l.setAttribute('x1',b.x);l.setAttribute('y1',Y);l.setAttribute('x2',b.x+b.w);l.setAttribute('y2',Y);g.appendChild(l);}svg.appendChild(g);}
+    function render(text){const sh=parseASY(text);clear();const b=bounds(sh);svg.setAttribute('viewBox',`${b.x} ${b.y} ${b.w} ${b.h}`);drawGrid(b);const g=document.createElementNS(svg.namespaceURI,'g');g.setAttribute('stroke','#0b3fa8');g.setAttribute('stroke-width','2');sh.forEach(s=>{const el=document.createElementNS(svg.namespaceURI,'line');el.setAttribute('x1',s.x1);el.setAttribute('y1',s.y1);el.setAttribute('x2',s.x2);el.setAttribute('y2',s.y2);g.appendChild(el)});svg.appendChild(g);setStatus(`Parsed ${sh.length} line(s).`);}
 
-    function parseASY(text){
-      const shapes = [];
-      for (const raw of text.split(/\r?\n/)) {
-        const line = raw.trim();
-        if (!line || line.startsWith(';')) continue;
-        const head = line.split(/\s+/)[0].toUpperCase();
-        const n = nums(line);
-        if (head === 'LINE' && n.length >= 4) {
-          const [x1,y1,x2,y2] = n.slice(-4);
-          shapes.push({t:'l',x1,y1,x2,y2});
-        } else if (head === 'RECTANGLE' && n.length >= 4) {
-          let [x1,y1,x2,y2] = n.slice(-4);
-          if (x2<x1) [x1,x2] = [x2,x1];
-          if (y2<y1) [y1,y2] = [y2,y1];
-          shapes.push({t:'r',x:x1,y:y1,w:x2-x1,h:y2-y1});
-        } else if (head === 'CIRCLE' && n.length >= 4) {
-          let [x1,y1,x2,y2] = n.slice(-4);
-          if (x2<x1) [x1,x2] = [x2,x1];
-          if (y2<y1) [y1,y2] = [y2,y1];
-          const rx = (x2-x1)/2, ry = (y2-y1)/2;
-          shapes.push({t:'e',cx:x1+rx,cy:y1+ry,rx,ry});
-        } else if (head === 'PIN' && n.length >= 2) {
-          const [x,y] = n;
-          const s = 8; // pin square size
-          shapes.push({t:'r',x:x-s/2,y:y-s/2,w:s,h:s,pin:1});
-        }
+    fileInput.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;render(await f.text())});
+
+    svg.addEventListener('wheel',e=>{e.preventDefault();const vb=svg.viewBox.baseVal,r=svg.getBoundingClientRect(),mx=vb.x+(e.clientX-r.left)/r.width*vb.width,my=vb.y+(e.clientY-r.top)/r.height*vb.height,z=Math.pow(1.1,e.deltaY>0?1:-1),nw=vb.width*z,nh=vb.height*z,u=(mx-vb.x)/vb.width,v=(my-vb.y)/vb.height;vb.x=mx-u*nw;vb.y=my-v*nh;vb.width=nw;vb.height=nh},{passive:false});
+
+    const snap=(val,step=16)=>Math.round(val/step)*step;
+
+    // Click once to start, move to preview, click again to set end (snap to grid)
+    let currentLine=null,start=null;
+    function toSVG(e){const vb=svg.viewBox.baseVal,r=svg.getBoundingClientRect();return{x:vb.x+(e.clientX-r.left)/r.width*vb.width,y:vb.y+(e.clientY-r.top)/r.height*vb.height};}
+
+    svg.addEventListener('click',e=>{
+      const p=toSVG(e);const x=snap(p.x),y=snap(p.y);
+      if(!start){ // start new line
+        start={x,y};
+        currentLine=document.createElementNS(svg.namespaceURI,'line');
+        currentLine.setAttribute('x1',x);currentLine.setAttribute('y1',y);
+        currentLine.setAttribute('x2',x);currentLine.setAttribute('y2',y);
+        currentLine.setAttribute('stroke','#d22');currentLine.setAttribute('stroke-width','2');
+        svg.appendChild(currentLine);
+      } else { // finish line
+        currentLine.setAttribute('x2',x);currentLine.setAttribute('y2',y);
+        currentLine=null;start=null;
       }
-      return shapes;
-    }
-
-    function bounds(sh){
-      let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-      const add = (x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
-      sh.forEach(s=>{
-        if(s.t==='l'){ add(s.x1,s.y1); add(s.x2,s.y2); }
-        if(s.t==='r'){ add(s.x,s.y); add(s.x+s.w,s.y+s.h); }
-        if(s.t==='e'){ add(s.cx-s.rx,s.cy-s.ry); add(s.cx+s.rx,s.cy+s.ry); }
-      });
-      if(!isFinite(minX)){ minX=0;minY=0;maxX=100;maxY=100; }
-      const pad = 16;
-      return {x:minX-pad, y:minY-pad, w:maxX-minX+pad*2, h:maxY-minY+pad*2};
-    }
-
-    function drawGrid(bounds, step=16){
-      const {x,y,w,h} = bounds;
-      const g = document.createElementNS(svg.namespaceURI,'g');
-      g.setAttribute('stroke','#5f6d7a'); g.setAttribute('stroke-width','0.6'); g.setAttribute('opacity','0.25');
-      for(let X=Math.ceil(x/step)*step; X<=x+w; X+=step){
-        const ln = document.createElementNS(svg.namespaceURI,'line');
-        ln.setAttribute('x1',X); ln.setAttribute('y1',y);
-        ln.setAttribute('x2',X); ln.setAttribute('y2',y+h);
-        g.appendChild(ln);
-      }
-      for(let Y=Math.ceil(y/step)*step; Y<=y+h; Y+=step){
-        const ln = document.createElementNS(svg.namespaceURI,'line');
-        ln.setAttribute('x1',x); ln.setAttribute('y1',Y);
-        ln.setAttribute('x2',x+w); ln.setAttribute('y2',Y);
-        g.appendChild(ln);
-      }
-      svg.appendChild(g);
-    }
-
-    function render(text){
-      const sh = parseASY(text);
-      clear();
-      const b = bounds(sh);
-      svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.w} ${b.h}`);
-      drawGrid(b);
-      const g = document.createElementNS(svg.namespaceURI,'g');
-      g.setAttribute('stroke','#0b3fa8');
-      g.setAttribute('fill','none');
-      g.setAttribute('stroke-width','2');
-      for(const s of sh){
-        if(s.t==='l'){
-          const el = document.createElementNS(svg.namespaceURI,'line');
-          el.setAttribute('x1',s.x1); el.setAttribute('y1',s.y1);
-          el.setAttribute('x2',s.x2); el.setAttribute('y2',s.y2);
-          g.appendChild(el);
-        } else if(s.t==='r'){
-          const el = document.createElementNS(svg.namespaceURI,'rect');
-          el.setAttribute('x',s.x); el.setAttribute('y',s.y);
-          el.setAttribute('width',s.w); el.setAttribute('height',s.h);
-          if(s.pin) el.setAttribute('fill','#0b3fa8');
-          g.appendChild(el);
-        } else if(s.t==='e'){
-          const el = document.createElementNS(svg.namespaceURI,'ellipse');
-          el.setAttribute('cx',s.cx); el.setAttribute('cy',s.cy);
-          el.setAttribute('rx',s.rx); el.setAttribute('ry',s.ry);
-          g.appendChild(el);
-        }
-      }
-      svg.appendChild(g);
-      setStatus(`Parsed ${sh.length} shape(s).`);
-    }
-
-    fileInput.addEventListener('change', async e => {
-      const f = e.target.files?.[0];
-      if (!f) return;
-      const text = await f.text();
-      render(text);
     });
 
-    svg.addEventListener('wheel', e => {
-      e.preventDefault();
-      const vb = svg.viewBox.baseVal;
-      const rect = svg.getBoundingClientRect();
-      const mx = vb.x + (e.clientX - rect.left) / rect.width * vb.width;
-      const my = vb.y + (e.clientY - rect.top)  / rect.height * vb.height;
-      const z  = Math.pow(1.1, e.deltaY > 0 ? 1 : -1);
-      const newW = vb.width * z, newH = vb.height * z;
-      const u = (mx - vb.x) / vb.width, v = (my - vb.y) / vb.height;
-      vb.x = mx - u * newW; vb.y = my - v * newH;
-      vb.width = newW; vb.height = newH;
-    }, { passive:false });
+    svg.addEventListener('mousemove',e=>{
+      if(currentLine){const p=toSVG(e);const x=snap(p.x),y=snap(p.y);currentLine.setAttribute('x2',x);currentLine.setAttribute('y2',y);}
+    });
+
+    window.addEventListener('keydown',e=>{if(e.key==='Escape'&&currentLine){currentLine.remove();currentLine=null;start=null;}});
   </script>
 </body>
 </html>
