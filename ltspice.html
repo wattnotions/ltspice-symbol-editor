@@ -25,7 +25,7 @@
     <section class="panel controls">
       <label id="pick" for="file">Select .asy file</label>
       <input id="file" type="file" accept=".asy,text/plain" />
-      <p style="color:#9fb0c0;margin:10px 0 0">Scroll to zoom. (Supports LINE / RECTANGLE / CIRCLE / PIN)</p>
+      <p style="color:#9fb0c0;margin:10px 0 0">Scroll to zoom. (Supports LINE / RECTANGLE / CIRCLE / PIN, grid always on)</p>
     </section>
 
     <section class="panel">
@@ -88,11 +88,31 @@
       return {x:minX-pad, y:minY-pad, w:maxX-minX+pad*2, h:maxY-minY+pad*2};
     }
 
+    function drawGrid(bounds, step=16){
+      const {x,y,w,h} = bounds;
+      const g = document.createElementNS(svg.namespaceURI,'g');
+      g.setAttribute('stroke','#5f6d7a'); g.setAttribute('stroke-width','0.6'); g.setAttribute('opacity','0.25');
+      for(let X=Math.ceil(x/step)*step; X<=x+w; X+=step){
+        const ln = document.createElementNS(svg.namespaceURI,'line');
+        ln.setAttribute('x1',X); ln.setAttribute('y1',y);
+        ln.setAttribute('x2',X); ln.setAttribute('y2',y+h);
+        g.appendChild(ln);
+      }
+      for(let Y=Math.ceil(y/step)*step; Y<=y+h; Y+=step){
+        const ln = document.createElementNS(svg.namespaceURI,'line');
+        ln.setAttribute('x1',x); ln.setAttribute('y1',Y);
+        ln.setAttribute('x2',x+w); ln.setAttribute('y2',Y);
+        g.appendChild(ln);
+      }
+      svg.appendChild(g);
+    }
+
     function render(text){
       const sh = parseASY(text);
       clear();
       const b = bounds(sh);
       svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.w} ${b.h}`);
+      drawGrid(b);
       const g = document.createElementNS(svg.namespaceURI,'g');
       g.setAttribute('stroke','#0b3fa8');
       g.setAttribute('fill','none');
@@ -120,7 +140,6 @@
       setStatus(`Parsed ${sh.length} shape(s).`);
     }
 
-    // Select file -> render
     fileInput.addEventListener('change', async e => {
       const f = e.target.files?.[0];
       if (!f) return;
@@ -128,7 +147,6 @@
       render(text);
     });
 
-    // Scroll-wheel zoom (cursor anchored)
     svg.addEventListener('wheel', e => {
       e.preventDefault();
       const vb = svg.viewBox.baseVal;
