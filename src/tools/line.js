@@ -14,9 +14,13 @@ function toXY(svg,e){
   const mouseX = e.clientX - r.left;
   const mouseY = e.clientY - r.top;
   
-  // Convert to SVG coordinates - now with square canvas this should work properly
-  const x = vb.x + (mouseX / r.width) * vb.width;
-  const y = vb.y + (mouseY / r.height) * vb.height;
+  // Convert to SVG coordinates with proper aspect ratio handling
+  // Use the same scaling factor for both X and Y to maintain consistent movement
+  const scaleX = vb.width / r.width;
+  const scaleY = vb.height / r.height;
+  
+  const x = vb.x + mouseX * scaleX;
+  const y = vb.y + mouseY * scaleY;
   
   return {x, y};
 }
