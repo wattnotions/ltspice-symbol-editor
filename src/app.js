@@ -13,13 +13,13 @@ let drawnLines = [];
 const GRID = 8; // Smaller grid for better performance
 const SUB_GRID = 2; // Sub-grid for fine snapping
 
-// Get reasonable initial viewport
+// Get square initial viewport for proper coordinate mapping
 function getInitialViewport() {
   return {
-    x: -50,
-    y: -50, 
-    w: 100,
-    h: 100
+    x: -40,
+    y: -40, 
+    w: 80,
+    h: 80
   };
 }
 

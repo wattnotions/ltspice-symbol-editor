@@ -10,17 +10,13 @@ function toXY(svg,e){
     return {x: 0, y: 0};
   }
   
-  // Get the actual SVG element dimensions
-  const svgWidth = svg.clientWidth || svg.offsetWidth;
-  const svgHeight = svg.clientHeight || svg.offsetHeight;
-  
   // Calculate the mouse position relative to the SVG element
   const mouseX = e.clientX - r.left;
   const mouseY = e.clientY - r.top;
   
-  // Convert to SVG coordinates using the actual SVG dimensions
-  const x = vb.x + (mouseX / svgWidth) * vb.width;
-  const y = vb.y + (mouseY / svgHeight) * vb.height;
+  // Convert to SVG coordinates - now with square canvas this should work properly
+  const x = vb.x + (mouseX / r.width) * vb.width;
+  const y = vb.y + (mouseY / r.height) * vb.height;
   
   return {x, y};
 }
