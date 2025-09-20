@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LTspice .asy Editor (modular)</title>
+    <style>
+      html,body{height:100%;margin:0;font:14px/1.3 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+      body{display:grid;grid-template-rows:auto 1fr;background:#0f1317;color:#e9eef3}
+      header{padding:10px 12px;background:#141a20;border-bottom:1px solid #273341;display:flex;gap:12px;align-items:center}
+      #file{display:none}
+      label#pick{cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid #334456;background:#19222c}
+      #status{margin-left:auto;color:#9fb0c0}
+      #stage{position:fixed;inset:48px 0 0 0;background:#c7c7c7}
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>.asy Editor</strong>
+      <label id="pick" for="file">Open .asy</label>
+      <input id="file" type="file" accept=".asy,text/plain" />
+      <span style="opacity:.7">Tip: click→click to draw a snapped line, wheel to zoom, Esc to cancel</span>
+      <span id="status">Ready</span>
+    </header>
+    <svg id="stage" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"></svg>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
