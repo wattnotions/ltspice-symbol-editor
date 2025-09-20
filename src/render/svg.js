@@ -6,8 +6,35 @@ export function clearSVG(svg){ while(svg.firstChild) svg.removeChild(svg.firstCh
 
 export function drawGrid(svg,b,step=16){
   const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.25');
-  for(let x=Math.ceil(b.x/step)*step;x<=b.x+b.w;x+=step){ const l=line(x,b.y,x,b.y+b.h); l.setAttribute('stroke','#5f6d7a'); l.setAttribute('stroke-width','0.6'); g.appendChild(l); }
-  for(let y=Math.ceil(b.y/step)*step;y<=b.y+b.h;y+=step){ const l=line(b.x,y,b.x+b.w,y); l.setAttribute('stroke','#5f6d7a'); l.setAttribute('stroke-width','0.6'); g.appendChild(l); }
+  
+  // Main grid lines
+  for(let x=Math.ceil(b.x/step)*step;x<=b.x+b.w;x+=step){ 
+    const l=line(x,b.y,x,b.y+b.h); 
+    l.setAttribute('stroke','#5f6d7a'); 
+    l.setAttribute('stroke-width','0.6'); 
+    g.appendChild(l); 
+  }
+  for(let y=Math.ceil(b.y/step)*step;y<=b.y+b.h;y+=step){ 
+    const l=line(b.x,y,b.x+b.w,y); 
+    l.setAttribute('stroke','#5f6d7a'); 
+    l.setAttribute('stroke-width','0.6'); 
+    g.appendChild(l); 
+  }
+  
+  // Sub-grid dots (every 4 units)
+  const subStep = step / 4;
+  for(let x=Math.ceil(b.x/subStep)*subStep;x<=b.x+b.w;x+=subStep){ 
+    for(let y=Math.ceil(b.y/subStep)*subStep;y<=b.y+b.h;y+=subStep){
+      const dot = document.createElementNS(NS,'circle');
+      dot.setAttribute('cx', x);
+      dot.setAttribute('cy', y);
+      dot.setAttribute('r', '0.5');
+      dot.setAttribute('fill', '#7a8a9a');
+      dot.setAttribute('opacity', '0.6');
+      g.appendChild(dot);
+    }
+  }
+  
   svg.appendChild(g);
 }
 

@@ -4,19 +4,38 @@ import { installLineTool } from './tools/line.js';
 
 const svg = document.getElementById('stage');
 const fileInput = document.getElementById('file');
+const downloadBtn = document.getElementById('download');
 const statusEl = document.getElementById('status');
 
-const GRID = 16;
+// Track all drawn lines
+let drawnLines = [];
 
-// Initial view
-setViewBox(svg, {x:0,y:0,w:200,h:200});
-drawGrid(svg, {x:0,y:0,w:200,h:200}, GRID);
+const GRID = 16;
+const SUB_GRID = 4; // Sub-grid for fine snapping
+
+// Get full viewport dimensions
+function getFullViewport() {
+  const rect = svg.getBoundingClientRect();
+  return {
+    x: -1000,
+    y: -1000, 
+    w: 2000,
+    h: 2000
+  };
+}
+
+// Initial view - full page grid
+const viewport = getFullViewport();
+setViewBox(svg, viewport);
+drawGrid(svg, viewport, GRID);
 installWheelZoom(svg);
 
 // Render helper from ASY text (lines only)
 function renderASY(text){
   const shapes = parseASY(text);
   clearSVG(svg);
+  drawnLines = [...shapes]; // Track loaded lines
+  
   // recompute bounds
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   const add=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y)};
@@ -29,6 +48,44 @@ function renderASY(text){
   statusEl.textContent = `Parsed ${shapes.length} line(s).`;
 }
 
+// Generate ASY file content
+function generateASYContent() {
+  let content = 'Version 4\n';
+  content += 'SymbolType CELL\n';
+  content += 'LINE Normal 0 0 0 0\n';
+  content += 'SYMATTR Prefix X\n';
+  content += 'SYMATTR ModelFile \n';
+  content += 'SYMATTR SpiceModel \n';
+  content += 'SYMATTR Value \n';
+  content += 'SYMATTR Value2 \n';
+  content += 'SYMATTR Description \n';
+  content += 'PIN 0 0 NONE 8 LEFT NONE\n';
+  content += 'PINATTR PinName \n';
+  content += 'PINATTR SpiceOrder 1\n';
+  
+  // Add all drawn lines
+  drawnLines.forEach(line => {
+    content += `LINE Normal ${line.x1} ${line.y1} ${line.x2} ${line.y2}\n`;
+  });
+  
+  return content;
+}
+
+// Download functionality
+function downloadASY() {
+  const content = generateASYContent();
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'symbol.asy';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  statusEl.textContent = `Downloaded ${drawnLines.length} line(s).`;
+}
+
 // File open
 fileInput.addEventListener('change', async e => {
   const f = e.target.files?.[0];
@@ -37,5 +94,12 @@ fileInput.addEventListener('change', async e => {
   renderASY(text);
 });
 
-// Click-to-draw with snapping; commit callback adds a styled line
-installLineTool(svg, GRID, (line)=> addLine(svg, line));
+// Download button
+downloadBtn.addEventListener('click', downloadASY);
+
+// Click-to-draw with snapping; commit callback adds a styled line and tracks it
+installLineTool(svg, GRID, SUB_GRID, (line)=> {
+  addLine(svg, line);
+  drawnLines.push(line);
+  statusEl.textContent = `Added line. Total: ${drawnLines.length}`;
+});

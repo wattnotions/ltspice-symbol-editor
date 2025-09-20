@@ -6,10 +6,28 @@ function toXY(svg,e){
   return {x:vb.x+(e.clientX-r.left)/r.width*vb.width, y:vb.y+(e.clientY-r.top)/r.height*vb.height};
 }
 
-export function installLineTool(svg, grid=16, commit){
+export function installLineTool(svg, grid=16, subGrid=4, commit){
   let cur=null, start=null;
+  
+  // Enhanced snapping function that supports both main grid and sub-grid
+  function smartSnap(x, y) {
+    // Try main grid first
+    const mainX = snap(x, grid);
+    const mainY = snap(y, grid);
+    
+    // Check if we're close to main grid
+    if (Math.abs(x - mainX) < 2 && Math.abs(y - mainY) < 2) {
+      return {x: mainX, y: mainY};
+    }
+    
+    // Otherwise snap to sub-grid
+    return {x: snap(x, subGrid), y: snap(y, subGrid)};
+  }
+  
   svg.addEventListener('click', e=>{
-    const p=toXY(svg,e), x=snap(p.x,grid), y=snap(p.y,grid);
+    const p=toXY(svg,e);
+    const {x, y} = smartSnap(p.x, p.y);
+    
     if(!start){
       start={x,y};
       cur=document.createElementNS(NS,'line');
@@ -24,7 +42,11 @@ export function installLineTool(svg, grid=16, commit){
     }
   });
   svg.addEventListener('mousemove', e=>{
-    if(cur){ const p=toXY(svg,e), x=snap(p.x,grid), y=snap(p.y,grid); cur.setAttribute('x2',x); cur.setAttribute('y2',y); }
+    if(cur){ 
+      const p=toXY(svg,e);
+      const {x, y} = smartSnap(p.x, p.y);
+      cur.setAttribute('x2',x); cur.setAttribute('y2',y); 
+    }
   });
   addEventListener('keydown', e=>{ if(e.key==='Escape'&&cur){ cur.remove(); cur=null; start=null; }});
 }
