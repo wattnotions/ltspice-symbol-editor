@@ -4,48 +4,67 @@ export function setViewBox(svg,b){ svg.setAttribute('viewBox',`${b.x} ${b.y} ${b
 
 export function clearSVG(svg){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
 
-export function drawGrid(svg,b,step=16){
-  const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.25');
+export function drawGrid(svg,b,step=8){
+  const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.3');
+  
+  // Limit grid to visible area for performance
+  const startX = Math.ceil(b.x/step)*step;
+  const endX = Math.min(b.x + b.w, startX + 50); // Limit to 50 units
+  const startY = Math.ceil(b.y/step)*step;
+  const endY = Math.min(b.y + b.h, startY + 50); // Limit to 50 units
   
   // Main grid lines only
-  for(let x=Math.ceil(b.x/step)*step;x<=b.x+b.w;x+=step){ 
+  for(let x=startX;x<=endX;x+=step){ 
     const l=line(x,b.y,x,b.y+b.h); 
     l.setAttribute('stroke','#5f6d7a'); 
-    l.setAttribute('stroke-width','0.6'); 
+    l.setAttribute('stroke-width','0.5'); 
     g.appendChild(l); 
   }
-  for(let y=Math.ceil(b.y/step)*step;y<=b.y+b.h;y+=step){ 
+  for(let y=startY;y<=endY;y+=step){ 
     const l=line(b.x,y,b.x+b.w,y); 
     l.setAttribute('stroke','#5f6d7a'); 
-    l.setAttribute('stroke-width','0.6'); 
+    l.setAttribute('stroke-width','0.5'); 
     g.appendChild(l); 
   }
   
   svg.appendChild(g);
 }
 
-export function drawSubGridDots(svg,b,step=16){
-  const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.6');
+export function drawSubGridDots(svg,b,step=8){
+  const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.5');
   
-  // Sub-grid dots (every 4 units) - limited to visible area
+  // Sub-grid dots (every 2 units) - limited to visible area
   const subStep = step / 4;
   const startX = Math.ceil(b.x/subStep)*subStep;
-  const endX = Math.min(b.x + b.w, startX + 200); // Limit to reasonable range
+  const endX = Math.min(b.x + b.w, startX + 30); // Limit to 30 units for performance
   const startY = Math.ceil(b.y/subStep)*subStep;
-  const endY = Math.min(b.y + b.h, startY + 200); // Limit to reasonable range
+  const endY = Math.min(b.y + b.h, startY + 30); // Limit to 30 units for performance
   
   for(let x=startX;x<=endX;x+=subStep){ 
     for(let y=startY;y<=endY;y+=subStep){
       const dot = document.createElementNS(NS,'circle');
       dot.setAttribute('cx', x);
       dot.setAttribute('cy', y);
-      dot.setAttribute('r', '1');
+      dot.setAttribute('r', '0.8');
       dot.setAttribute('fill', '#9fb0c0');
       g.appendChild(dot);
     }
   }
   
   svg.appendChild(g);
+}
+
+export function drawSymbolBorder(svg,b){
+  const border = document.createElementNS(NS,'rect');
+  border.setAttribute('x', b.x);
+  border.setAttribute('y', b.y);
+  border.setAttribute('width', b.w);
+  border.setAttribute('height', b.h);
+  border.setAttribute('fill', 'none');
+  border.setAttribute('stroke', '#334456');
+  border.setAttribute('stroke-width', '1');
+  border.setAttribute('stroke-dasharray', '2,2');
+  svg.appendChild(border);
 }
 
 export function addLine(svg,{x1,y1,x2,y2}){
