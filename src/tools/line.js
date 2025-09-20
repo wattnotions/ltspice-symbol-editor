@@ -2,45 +2,21 @@ const NS='http://www.w3.org/2000/svg';
 const snap=(v,s)=>Math.round(v/s)*s;
 
 function toXY(svg,e){
-  const vb=svg.viewBox.baseVal;
-  const r=svg.getBoundingClientRect();
+  // Use the browser's built-in SVG coordinate conversion
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
   
-  // Ensure we have valid dimensions
-  if (r.width === 0 || r.height === 0 || vb.width === 0 || vb.height === 0) {
-    return {x: 0, y: 0};
+  // Transform from screen coordinates to SVG coordinates
+  const ctm = svg.getScreenCTM();
+  if (ctm) {
+    pt.x = pt.x - ctm.e;
+    pt.y = pt.y - ctm.f;
+    pt.x = pt.x / ctm.a;
+    pt.y = pt.y / ctm.d;
   }
   
-  // Calculate the mouse position relative to the SVG element
-  const mouseX = e.clientX - r.left;
-  const mouseY = e.clientY - r.top;
-  
-  // Handle preserveAspectRatio by using the actual rendered scale
-  // The preserveAspectRatio="xMidYMid meet" can cause different scaling for X and Y
-  const vbAspectRatio = vb.width / vb.height;
-  const rectAspectRatio = r.width / r.height;
-  
-  let scaleX, scaleY, offsetX, offsetY;
-  
-  if (vbAspectRatio > rectAspectRatio) {
-    // ViewBox is wider - scale based on width
-    scaleX = scaleY = vb.width / r.width;
-    offsetX = 0;
-    offsetY = (r.height - r.width / vbAspectRatio) / 2;
-  } else {
-    // ViewBox is taller - scale based on height
-    scaleX = scaleY = vb.height / r.height;
-    offsetX = (r.width - r.height * vbAspectRatio) / 2;
-    offsetY = 0;
-  }
-  
-  // Adjust mouse coordinates for the offset
-  const adjustedMouseX = mouseX - offsetX;
-  const adjustedMouseY = mouseY - offsetY;
-  
-  const x = vb.x + adjustedMouseX * scaleX;
-  const y = vb.y + adjustedMouseY * scaleY;
-  
-  return {x, y};
+  return {x: pt.x, y: pt.y};
 }
 
 export function installLineTool(svg, grid=16, subGrid=4, commit){
