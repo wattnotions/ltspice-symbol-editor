@@ -28,9 +28,9 @@ export function drawGrid(svg,b,step=16){
       const dot = document.createElementNS(NS,'circle');
       dot.setAttribute('cx', x);
       dot.setAttribute('cy', y);
-      dot.setAttribute('r', '0.5');
-      dot.setAttribute('fill', '#7a8a9a');
-      dot.setAttribute('opacity', '0.6');
+      dot.setAttribute('r', '3');
+      dot.setAttribute('fill', '#ff6b6b');
+      dot.setAttribute('opacity', '0.7');
       g.appendChild(dot);
     }
   }

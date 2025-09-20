@@ -11,16 +11,7 @@ export function installLineTool(svg, grid=16, subGrid=4, commit){
   
   // Enhanced snapping function that supports both main grid and sub-grid
   function smartSnap(x, y) {
-    // Try main grid first
-    const mainX = snap(x, grid);
-    const mainY = snap(y, grid);
-    
-    // Check if we're close to main grid
-    if (Math.abs(x - mainX) < 2 && Math.abs(y - mainY) < 2) {
-      return {x: mainX, y: mainY};
-    }
-    
-    // Otherwise snap to sub-grid
+    // Always snap to sub-grid for fine positioning
     return {x: snap(x, subGrid), y: snap(y, subGrid)};
   }
   

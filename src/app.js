@@ -17,10 +17,10 @@ const SUB_GRID = 4; // Sub-grid for fine snapping
 function getFullViewport() {
   const rect = svg.getBoundingClientRect();
   return {
-    x: -1000,
-    y: -1000, 
-    w: 2000,
-    h: 2000
+    x: -200,
+    y: -200, 
+    w: 400,
+    h: 400
   };
 }
 
