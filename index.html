@@ -16,14 +16,14 @@
   </head>
   <body>
     <header>
-      <strong>.asy Editor</strong>
+      <strong>.asy Editor v1.2.3</strong>
       <label id="pick" for="file">Open .asy</label>
       <input id="file" type="file" accept=".asy,text/plain" />
       <button id="download" style="padding:6px 10px;border-radius:8px;border:1px solid #334456;background:#19222c;color:#e9eef3;cursor:pointer;">Download .asy</button>
       <span style="opacity:.7">Tip: click→click to draw a snapped line, wheel to zoom, Esc to cancel</span>
       <span id="status">Ready</span>
     </header>
-    <svg id="stage" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"></svg>
+    <svg id="stage" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" style="display:block;"></svg>
     <script type="module" src="./src/app.js"></script>
   </body>
 </html>
