@@ -2,8 +2,23 @@ const NS='http://www.w3.org/2000/svg';
 const snap=(v,s)=>Math.round(v/s)*s;
 
 function toXY(svg,e){
-  const vb=svg.viewBox.baseVal, r=svg.getBoundingClientRect();
-  return {x:vb.x+(e.clientX-r.left)/r.width*vb.width, y:vb.y+(e.clientY-r.top)/r.height*vb.height};
+  const vb=svg.viewBox.baseVal;
+  const r=svg.getBoundingClientRect();
+  
+  // Ensure we have valid dimensions
+  if (r.width === 0 || r.height === 0 || vb.width === 0 || vb.height === 0) {
+    return {x: 0, y: 0};
+  }
+  
+  // Calculate the mouse position relative to the SVG element
+  const mouseX = e.clientX - r.left;
+  const mouseY = e.clientY - r.top;
+  
+  // Convert to SVG coordinates using proper scaling
+  const x = vb.x + (mouseX / r.width) * vb.width;
+  const y = vb.y + (mouseY / r.height) * vb.height;
+  
+  return {x, y};
 }
 
 export function installLineTool(svg, grid=16, subGrid=4, commit){
@@ -12,7 +27,9 @@ export function installLineTool(svg, grid=16, subGrid=4, commit){
   // Enhanced snapping function that supports both main grid and sub-grid
   function smartSnap(x, y) {
     // Always snap to sub-grid for fine positioning
-    return {x: snap(x, subGrid), y: snap(y, subGrid)};
+    const snappedX = snap(x, subGrid);
+    const snappedY = snap(y, subGrid);
+    return {x: snappedX, y: snappedY};
   }
   
   svg.addEventListener('click', e=>{
