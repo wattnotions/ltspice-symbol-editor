@@ -14,13 +14,31 @@ function toXY(svg,e){
   const mouseX = e.clientX - r.left;
   const mouseY = e.clientY - r.top;
   
-  // Convert to SVG coordinates with proper aspect ratio handling
-  // Use the same scaling factor for both X and Y to maintain consistent movement
-  const scaleX = vb.width / r.width;
-  const scaleY = vb.height / r.height;
+  // Handle preserveAspectRatio by using the actual rendered scale
+  // The preserveAspectRatio="xMidYMid meet" can cause different scaling for X and Y
+  const vbAspectRatio = vb.width / vb.height;
+  const rectAspectRatio = r.width / r.height;
   
-  const x = vb.x + mouseX * scaleX;
-  const y = vb.y + mouseY * scaleY;
+  let scaleX, scaleY, offsetX, offsetY;
+  
+  if (vbAspectRatio > rectAspectRatio) {
+    // ViewBox is wider - scale based on width
+    scaleX = scaleY = vb.width / r.width;
+    offsetX = 0;
+    offsetY = (r.height - r.width / vbAspectRatio) / 2;
+  } else {
+    // ViewBox is taller - scale based on height
+    scaleX = scaleY = vb.height / r.height;
+    offsetX = (r.width - r.height * vbAspectRatio) / 2;
+    offsetY = 0;
+  }
+  
+  // Adjust mouse coordinates for the offset
+  const adjustedMouseX = mouseX - offsetX;
+  const adjustedMouseY = mouseY - offsetY;
+  
+  const x = vb.x + adjustedMouseX * scaleX;
+  const y = vb.y + adjustedMouseY * scaleY;
   
   return {x, y};
 }
