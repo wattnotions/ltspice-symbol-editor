@@ -1,5 +1,5 @@
 import { parseASY } from './asy/parse.js';
-import { setViewBox, drawGrid, clearSVG, addLine, installWheelZoom } from './render/svg.js';
+import { setViewBox, drawGrid, drawSubGridDots, clearSVG, addLine, installWheelZoom } from './render/svg.js';
 import { installLineTool } from './tools/line.js';
 
 const svg = document.getElementById('stage');
@@ -13,21 +13,21 @@ let drawnLines = [];
 const GRID = 16;
 const SUB_GRID = 4; // Sub-grid for fine snapping
 
-// Get full viewport dimensions
-function getFullViewport() {
-  const rect = svg.getBoundingClientRect();
+// Get reasonable initial viewport
+function getInitialViewport() {
   return {
-    x: -200,
-    y: -200, 
-    w: 400,
-    h: 400
+    x: -100,
+    y: -100, 
+    w: 200,
+    h: 200
   };
 }
 
-// Initial view - full page grid
-const viewport = getFullViewport();
+// Initial view - reasonable grid
+const viewport = getInitialViewport();
 setViewBox(svg, viewport);
 drawGrid(svg, viewport, GRID);
+drawSubGridDots(svg, viewport, GRID);
 installWheelZoom(svg);
 
 // Render helper from ASY text (lines only)
@@ -44,6 +44,7 @@ function renderASY(text){
   const pad=16, b={x:minX-pad,y:minY-pad,w:maxX-minX+pad*2,h:maxY-minY+pad*2};
   setViewBox(svg,b);
   drawGrid(svg,b,GRID);
+  drawSubGridDots(svg,b,GRID);
   shapes.forEach(addLine.bind(null, svg));
   statusEl.textContent = `Parsed ${shapes.length} line(s).`;
 }

@@ -7,7 +7,7 @@ export function clearSVG(svg){ while(svg.firstChild) svg.removeChild(svg.firstCh
 export function drawGrid(svg,b,step=16){
   const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.25');
   
-  // Main grid lines
+  // Main grid lines only
   for(let x=Math.ceil(b.x/step)*step;x<=b.x+b.w;x+=step){ 
     const l=line(x,b.y,x,b.y+b.h); 
     l.setAttribute('stroke','#5f6d7a'); 
@@ -21,16 +21,26 @@ export function drawGrid(svg,b,step=16){
     g.appendChild(l); 
   }
   
-  // Sub-grid dots (every 4 units)
+  svg.appendChild(g);
+}
+
+export function drawSubGridDots(svg,b,step=16){
+  const g=document.createElementNS(NS,'g'); g.setAttribute('opacity','0.6');
+  
+  // Sub-grid dots (every 4 units) - limited to visible area
   const subStep = step / 4;
-  for(let x=Math.ceil(b.x/subStep)*subStep;x<=b.x+b.w;x+=subStep){ 
-    for(let y=Math.ceil(b.y/subStep)*subStep;y<=b.y+b.h;y+=subStep){
+  const startX = Math.ceil(b.x/subStep)*subStep;
+  const endX = Math.min(b.x + b.w, startX + 200); // Limit to reasonable range
+  const startY = Math.ceil(b.y/subStep)*subStep;
+  const endY = Math.min(b.y + b.h, startY + 200); // Limit to reasonable range
+  
+  for(let x=startX;x<=endX;x+=subStep){ 
+    for(let y=startY;y<=endY;y+=subStep){
       const dot = document.createElementNS(NS,'circle');
       dot.setAttribute('cx', x);
       dot.setAttribute('cy', y);
-      dot.setAttribute('r', '3');
-      dot.setAttribute('fill', '#ff6b6b');
-      dot.setAttribute('opacity', '0.7');
+      dot.setAttribute('r', '1');
+      dot.setAttribute('fill', '#9fb0c0');
       g.appendChild(dot);
     }
   }
